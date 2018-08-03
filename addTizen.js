@@ -1,5 +1,24 @@
+#!/usr/bin/env node
+
+var program = require('commander');
 fs = require('fs');
-const packageJSON = 'package.json';
+
+program
+    .version('0.0.1')
+    .usage('[options] <package.json>')
+    .option('-f, --file [package.json]', 'File which contains the package.json project description')
+    .option('-c, --config [config]', 'Path to the config.xml where the projectId is read from.')
+    .option('-p, --projectid [projectid]', 'The project Id to use in the project.')
+    .parse(process.argv);
+
+let packageJSON = 'package.json';
+let configXML = program.config ? program.config : 'config.xml';
+if(!program.args.length) {
+    console.log('Updating: package.json in current directory.');
+} else {
+    packageJSON = program.args[0];
+    console.log('Updating: ' + packageJSON);
+}
 
 let errorHandler = (msg, error) => {
     if (error != undefined) {
@@ -22,10 +41,9 @@ scripts = {
     "start": "tizen run -p [appIdGoesHere] -t $npm_package_config_target_device"
 };
 let findPackageId = (next) => {
-    fs.readFile('config.xml', (error, data) => {
+    fs.readFile(configXML, (error, data) => {
         let parser = require('xml2js').Parser();
         parser.parseString(data, (err, json) => {
-            console.log('package info', json);
             next(json.widget['tizen:application'][0]['$'].id);
         });
     });
@@ -43,7 +61,7 @@ let processPackage = (pkg) => {
     fs.writeFile(packageJSON, result,() => console.log(packageJSON + ' was saved!'));
 };
 
-findPackageId((appId) => {
+let doUpdate = (appId) => {
     scripts['start'] = "tizen run -p " + appId + " -t $npm_package_config_target_device";
     fs.readFile(packageJSON, (error, data) => {
         if (!error) {
@@ -52,5 +70,10 @@ findPackageId((appId) => {
             errorHandler('A "' + packageJSON + '" file should exist in the directory.', error);
         }
     });
-});
+};
+if(program.projectid) {
+    doUpdate(program.projectid);
+} else {
+    findPackageId(doUpdate);
+}
 
