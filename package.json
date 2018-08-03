@@ -6,6 +6,7 @@
     "start": "node ./bin/www"
   },
   "dependencies": {
+    "commander": "^2.16.0",
     "xml2js": "^0.4.19"
   },
   "bin": {
