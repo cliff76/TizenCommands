@@ -2,6 +2,7 @@
 
 var program = require('commander');
 fs = require('fs');
+path = require('path');
 
 program
     .version('0.0.1')
@@ -59,6 +60,36 @@ let processPackage = (pkg) => {
 
     const result = JSON.stringify(pkg, null, 3);
     fs.writeFile(packageJSON, result,() => console.log(packageJSON + ' was saved!'));
+    let twrapperFile = path.resolve(path.dirname(packageJSON),'twrapper');
+    fs.exists(twrapperFile, (exists) => {
+        if(exists) {
+            console.log('Detected Tizen wrapper file:',twrapperFile);
+        } else {
+            console.log('Generating Tizen wrapper file:',twrapperFile);
+            const twrapperContents = "#!/bin/sh\n" +
+                "\n" +
+                "tizen $@\n" +
+                "\n" +
+                "echo \"done.\"\n";
+            fs.writeFile(twrapperFile,twrapperContents, (error) => {
+                if (!error) {
+                    let permissions =
+                        fs.constants.S_IRUSR | fs.constants.S_IRGRP | fs.constants.S_IROTH |
+                        fs.constants.S_IWUSR |
+                        fs.constants.S_IXUSR | fs.constants.S_IXGRP | fs.constants.S_IXOTH;
+                    fs.chmod(twrapperFile, permissions, (err) => {
+                        if (!err) {
+                            console.log('Generated!');
+                        } else {
+                            console.log(err);
+                        }
+                    });
+                } else {
+                    console.log(error);
+                }
+            });
+        }
+    });
 };
 
 let doUpdate = (appId) => {
